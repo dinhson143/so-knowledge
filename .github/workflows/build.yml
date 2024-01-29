@@ -1,0 +1,42 @@
+name: CICD pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest .
+          docker push ${{ env.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+      - name: Update Docker container
+        run: |
+          docker pull ${{ env.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          # Check docker exist
+          if docker ps -a --format '{{.Names}}' | grep -q so-container; then
+            docker stop so-container
+            docker rm so-container
+          fi
+          docker run -d --name so-container -p 4000:80 ${{ env.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          # Check container whether running
+          docker ps --filter "name=so-container"
+      - name: Print Docker logs
+        run: |
+          docker logs so-container
+
