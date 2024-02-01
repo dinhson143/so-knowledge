@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy local directories to the current local directory of our docker image (/app)
 COPY . .
 
-EXPOSE 3000
+EXPOSE 80
 
 # Start the app using serve command
 CMD ["python3", "app.py"]
